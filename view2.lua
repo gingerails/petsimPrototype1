@@ -39,7 +39,12 @@ function scene:create( event )
 	-- This section creates the panel widget, checks that it is shown (panelTransDone),
 	-- and creates the panel open/close buttons. It references the panel file.
 	-- Put inventory objects here unless we make the inventory OOP?
-	---------------------------------------------------------------------------------
+	------------------------------------------------------------------------------
+
+
+
+
+
 	local function panelTransDone( target )
 		--native.showAlert( "Panel", "Complete", { "Okay" } )
 		if ( target.completeState ) then
@@ -47,6 +52,11 @@ function scene:create( event )
 		end
 	end
 	
+
+
+	
+
+
 	local panel = widget.newPanel{
 		location = "top",
 		onComplete = panelTransDone,
@@ -57,10 +67,30 @@ function scene:create( event )
 		outEasing = easing.outCubic
 	}
 
+
+	local function closePanelEvent(event)
+		if (event.phase == "ended") then 
+			local burgerImage = display.newImage("burger.png", display.contentCenterX, display.contentCenterY)
+			burgerImage:scale(0.05, 0.05)
+			panel:hide()
+		end
+	end
+
+
+
+
 	panel.background = display.newRect( 0, 0, panel.width, panel.height )
 	panel.background:setFillColor( 0, 0.25, 0.5 )
 	panel:insert( panel.background )
-	
+	local burgerButton = widget.newButton(
+		{
+			width = 360,
+			height = 360,
+			defaultFile = "burger.png",
+			onEvent = closePanelEvent
+		}
+	)
+	panel:insert(burgerButton)
 	panel.title = display.newText( "menu", 0, 0, native.systemFontBold, 18 )
 	panel.title:setFillColor( 1, 1, 1 )
 	panel:insert( panel.title )
