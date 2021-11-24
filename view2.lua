@@ -9,6 +9,8 @@ local widget = require( "widget" )
 local scene = composer.newScene()
 local panelstuff = require ( "panel" )
 local pet = require ( "pet" )
+local Item = require ( "item" )
+local Spaghetti = require ( "spaghetti" )
 
 
 --
@@ -29,10 +31,12 @@ function scene:create( event )
 
 	
 	-- create a white background to fill screen
-	local background = display.newRect( display.contentCenterX, display.contentCenterY, display.contentWidth, display.contentHeight )
-	background:setFillColor( 2 )	-- white
+	local background = display.newImageRect( "background.png", display.contentWidth, display.contentHeight) 	background:setFillColor( 2 )	-- white
+	background.x = display.contentCenterX
+	background.y = display.contentCenterY
+	background.xScale = 1.5;
+	background.yScale = 1;
 	sceneGroup:insert( background )
-
 
 	---------------------------------------------------------------------------------
 	-- CREATE DROPDOWN PANEL WIDGET
@@ -40,10 +44,6 @@ function scene:create( event )
 	-- and creates the panel open/close buttons. It references the panel file.
 	-- Put inventory objects here unless we make the inventory OOP?
 	------------------------------------------------------------------------------
-
-
-
-
 
 	local function panelTransDone( target )
 		--native.showAlert( "Panel", "Complete", { "Okay" } )
@@ -53,53 +53,79 @@ function scene:create( event )
 	end
 	
 
-
-	
-
-
 	local panel = widget.newPanel{
 		location = "top",
 		onComplete = panelTransDone,
-		width = display.contentWidth * 0.8,
-		height = display.contentHeight * 0.8,
+		width = display.contentWidth * 0.95,
+		height = display.contentHeight * 0.6,
 		speed = 250,
 		inEasing = easing.outBack,
 		outEasing = easing.outCubic
 	}
-
-
-	local function closePanelEvent(event)
+ ---------------------------------------------------------------------------------
+	-- CREATE FOOD ITEMS AND BUTTONS
+ -- This closes the panel and spawns the chosen item
+	local function chooseBurgerEvent(event)
 		if (event.phase == "ended") then 
-			local burgerImage = display.newImage("burger.png", display.contentCenterX, display.contentCenterY)
-			burgerImage:scale(0.05, 0.05)
+			-------- Create Burger object
+			burger = Item:new({xPos=x, yPos=y});
+			burger:spawn(sceneGroup); 
 			panel:hide()
 		end
 	end
 
-
-
-
 	panel.background = display.newRect( 0, 0, panel.width, panel.height )
 	panel.background:setFillColor( 0, 0.25, 0.5 )
 	panel:insert( panel.background )
+
 	local burgerButton = widget.newButton(
 		{
-			width = 360,
-			height = 360,
+			width = 1113,
+			height = 876,
 			defaultFile = "burger.png",
-			onEvent = closePanelEvent
+			onEvent = chooseBurgerEvent
 		}
 	)
+	burgerButton.x = display.contentCenterX-200
+	burgerButton.y = display.contentCenterY-300
+	burgerButton.xScale = .05
+	burgerButton.yScale = .05
 	panel:insert(burgerButton)
+
+
+	-- This closes the panel and spawns the chosen item
+	local function chooseSpaghettiEvent(event)
+		if (event.phase == "ended") then 
+			-------- Create Burger object
+			spaghetti = Spaghetti:new({xPos=x, yPos=y});
+			spaghetti:spawn(sceneGroup); 
+			panel:hide()
+		end
+	end
+	
+	local spaghettiButton = widget.newButton(
+		{
+			width = 1500,
+			height = 700,
+			defaultFile = "spaghet.png",
+			onEvent = chooseSpaghettiEvent
+		}
+	)
+	spaghettiButton.x = display.contentCenterX-135
+	spaghettiButton.y = display.contentCenterY-300
+	spaghettiButton.xScale = .05
+	spaghettiButton.yScale = .05
+	panel:insert(spaghettiButton)
+
+	---------------------------------------------------------------------------------
 	panel.title = display.newText( "menu", 0, 0, native.systemFontBold, 18 )
 	panel.title:setFillColor( 1, 1, 1 )
 	panel:insert( panel.title )
 
 	--start button
 	local function handleButtonEvent( event )
-		
 		if ( "ended" == event.phase ) then
-			print( "Button was pressed and released" )
+			print( "Hide Panel button was pressed and released" )
 			--composer.gotoScene( "view2" )
 			panel:hide();
 		end
@@ -124,11 +150,11 @@ function scene:create( event )
     -----------------------------------------------------------------------------------------
 	-- scene:create panelButton
 	----------------------------------------------------------------------------------------
-	--start button
+	-- Create panel button
 	local function handleButtonEvent( event )
 	
 		if ( "ended" == event.phase ) then
-			print( "Button was pressed and released" )
+			print( "Create Panel button pressed and released" )
 			--composer.gotoScene( "view2" )
 			panel:show()
 		end
@@ -145,6 +171,8 @@ function scene:create( event )
 	)
 	panelButton.xScale=.2
 	panelButton.yScale=.2
+	panelButton.x = 275
+	panelButton.y = 20
 	sceneGroup:insert( panelButton) --ADD DROPDOWN MENU
 	
 	sceneGroup:insert(panel)
@@ -161,27 +189,27 @@ function scene:show( event )
 	elseif phase == "did" then
 		-- Called when the scene is now on screen
 		----------------------------------------------------------------------------------------
-		--test Menu button
-		local function handleMenuButtonEvent( event )
+		-- --test Menu button
+		-- local function handleMenuButtonEvent( event )
 		
-			if ( "ended" == event.phase ) then
-				print( "Button was pressed and released" )
-				--composer.gotoScene( "view2" )
-				composer.gotoScene( "view1" )
-			end
-		end
+		-- 	if ( "ended" == event.phase ) then
+		-- 		print( "Menu testing Button was pressed and released" )
+		-- 		--composer.gotoScene( "view2" )
+		-- 		composer.gotoScene( "view1" )
+		-- 	end
+		-- end
 
-		--local startButton = display.newImageRect("start.png", 100, 100)
-		local menuButton = widget.newButton(
-			{
-				width = 100,
-				height = 200,
-				defaultFile = "start.png",
-				onEvent = handleMenuButtonEvent
-			}
-		)
+		-- --local startButton = display.newImageRect("start.png", 100, 100)
+		-- local menuButton = widget.newButton(
+		-- 	{
+		-- 		width = 100,
+		-- 		height = 200,
+		-- 		defaultFile = "start.png",
+		-- 		onEvent = handleMenuButtonEvent
+		-- 	}
+		-- )
         
-		sceneGroup:insert( menuButton) --ADD DROPDOWN MENU
+		-- sceneGroup:insert( menuButton) --ADD DROPDOWN MENU
 		
 		-- 
 		-- INSERT code here to make the scene come alive
