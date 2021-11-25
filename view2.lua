@@ -185,6 +185,50 @@ function scene:show( event )
 	local phase = event.phase
 	
 	if phase == "will" then
+		local healthBarValue=pet.Hunger
+        local happyBarValue=pet.Happiness
+        local cleanBarValue=pet.Cleanliness
+        
+    
+        local healthBar = display.newRect(100, 100, healthBarValue, 50)
+        healthBar:setFillColor(1, 0, 0, 0.5)
+        healthBar.anchorX = 0
+
+        local happyBar= display.newRect(100, 40, happyBarValue, 50)
+        happyBar:setFillColor(0, 1, 0, 0.5)
+        happyBar.anchorX = 0
+
+        local cleanBar= display.newRect(100, -20, cleanBarValue, 50)
+        cleanBar:setFillColor(0, 0, 1, 0.5)
+        cleanBar.anchorX = 0
+
+
+        local petTimer = timer.performWithDelay(
+            1000,
+            function()
+                pet.Hunger=petObj.Hunger-3
+                pet.Happiness=petObj.Happiness-2
+                pet.Cleanliness=petObj.Cleanliness-1
+                
+                healthBarValue=petObj.Hunger
+                happyBarValue=petObj.Happiness
+                cleanBarValue=petObj.Cleanliness
+                
+                healthBar.width=healthBar.width-2
+                happyBar.width=happyBar.width-3
+                cleanBar.width=cleanBar.width-1
+                print("Hunger " .. healthBarValue)
+                print("Happy " .. happyBarValue)
+                print("Clean ".. cleanBarValue)
+
+                
+            end,
+            0
+        )
+
+        print (healthBarValue)
+        print (happyBarValue)
+        print (cleanBarValue)
 		-- Called when the scene is still off screen and is about to move on screen
 	elseif phase == "did" then
 		-- Called when the scene is now on screen

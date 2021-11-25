@@ -1,6 +1,6 @@
 --local physics = require("physics");
 
-local Pet = {tag="pet", HP=100, xPos=0, yPos=0};
+local Pet = {tag="pet", Happiness = 100, Cleanliness = 100, Hunger = 100, xPos=0, yPos=0};
 
 function Pet:new (o)    --constructor
   o = o or {}; 
