@@ -1,7 +1,7 @@
 local Item = require ( "item" )
 local physics = require("physics");
 
-local Spaghetti = Item:new({tag="shape", xPos=0, yPos=0});
+local Spaghetti = Item:new({tag="shape", xPos=0, yPos=0, physics = {"dynamic", {}}});
 -----------------------------------------------------------------------------
 -- spawn()
 -- Spaghetti:spawn ()
@@ -15,14 +15,15 @@ function Spaghetti:spawn(grp)
     self.shape.tag = self.tag; -- “shape”
     self.shape.xScale = .05   --Scale the pet down some
     self.shape.yScale = .05
-    self.shape.x = 75
-    self.shape.y = 500
+    self.shape.x = 100
+    self.shape.y = 400
     --self.shape:addEventListener
     print("made spaghetti")
     self.shape.touch = function (s, event) s.pp:touch(event) end
     self.shape:addEventListener("touch", touch )
 
     self:sound();
+    self:initShape();
     if grp then grp:insert(self.shape) end    --Adds to display/sceneGroup?
 end
 
@@ -65,6 +66,36 @@ function Spaghetti:touch( event )
 end
 
 
+function Spaghetti:initShape(grp)
+    if not self.shape then return end
+  
+    -- Set up references
+    self.shape.pp = self
+    self.shape.tag = self.tag
+  
+    -- Add to DisplayGroup
+    if grp then grp:insert(self.shape) end
+  
+    -- Set up physics
+    local body, params = unpack(self.physics)
+    physics.addBody(self.shape, body, params)
+  
+    -- Set up collision handler
+    self.shape.collision = function (s, event) s.pp:collision(event) end
+    self.shape.preCollision = function (s, event) s.pp:collision(event) end
+    self.shape.postCollision = function (s, event) s.pp:collision(event) end
+    self.shape:addEventListener("collision")
+    self.shape:addEventListener("preCollision")
+    self.shape:addEventListener("postCollision")
+  end
+
+
+function Spaghetti:collision(event)
+    if event.name == "postCollision" then
+      print("Spaghettercollision?")
+      
+    end
+end
 -----------------------------------------------------------------------------
 -- sound()
 -- Spaghetti:sound() will play rectSound.wav you can download it from dropbox folder

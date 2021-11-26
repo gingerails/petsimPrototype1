@@ -11,6 +11,7 @@ local panelstuff = require ( "panel" )
 local pet = require ( "pet" )
 local Item = require ( "item" )
 local Spaghetti = require ( "spaghetti" )
+local physics = require ("physics")
 
 
 --
@@ -25,9 +26,11 @@ local Spaghetti = require ( "spaghetti" )
 	-- Called when the scene's view does not exist.
 	-- Initializes the scene. Spawns pet.
 function scene:create( event )
+
+	physics.start()
 	-- all necessary imports
 	local sceneGroup = self.view
-	local Pet = require('pet')
+	Pet = require('pet')
 
 	
 	-- create a white background to fill screen
@@ -174,16 +177,35 @@ function scene:create( event )
 	panelButton.x = 275
 	panelButton.y = 20
 	sceneGroup:insert( panelButton) --ADD DROPDOWN MENU
+
+
 	
 	sceneGroup:insert(panel)
     --sceneGroup:insert( petObj )
+
+
+	--Walls so that the ball does not fall
+	local bottom = display.newRect(0, display.contentHeight-10, display.contentWidth, 20)
+	bottom.anchorX = 0; bottom.anchorY = 0
+	local left = display.newRect(0, 0, 5, display.contentHeight)
+	left.anchorX = 0; left.anchorY = 0
+	local right = display.newRect(display.contentWidth-5, 0, 20, display.contentHeight)
+	right.anchorX = 0; right.anchorY = 0
+	physics.addBody(bottom, 'static')
+	physics.addBody(left, 'static')
+	physics.addBody(right, 'static')
+
+	sceneGroup:insert(bottom)
+	sceneGroup:insert(left)
+	sceneGroup:insert(right)
 	
 end
 
 function scene:show( event )
 	local sceneGroup = self.view
 	local phase = event.phase
-	
+	petObj:changeSequence( "idle") -- started idle sequence here instead of inside the pet object :)
+	--get pet hunger, happiness, cleanliness. Show it with rectangles. Use time to make it shrink.
 	if phase == "will" then
 		local healthBarValue=pet.Hunger
         local happyBarValue=pet.Happiness
@@ -203,7 +225,11 @@ function scene:show( event )
         cleanBar.anchorX = 0
 
 
-        local petTimer = timer.performWithDelay(
+
+		--------------------------------------------------------------
+		---- Pet timer. changes sequences ?
+		--------------------------------------------------------
+        petTimer = timer.performWithDelay(
             1000,
             function()
                 pet.Hunger=petObj.Hunger-3
@@ -218,42 +244,57 @@ function scene:show( event )
                 happyBar.width=happyBar.width-3
                 cleanBar.width=cleanBar.width-1
                 print("Hunger " .. healthBarValue)
+				print(petObj.Hunger)
                 print("Happy " .. happyBarValue)
+				print(petObj.Happiness)
                 print("Clean ".. cleanBarValue)
+				print(petObj.Cleanliness)
 
-                
+				if (happyBarValue < 90) then
+					print("yeah")
+					petObj:changeSequence("sadIdle")
+
+				end
+
             end,
             0
         )
+		sceneGroup:insert( healthBar)
+		sceneGroup:insert( happyBar)
+		sceneGroup:insert( cleanBar)
 
         print (healthBarValue)
         print (happyBarValue)
         print (cleanBarValue)
+
+
+		
 		-- Called when the scene is still off screen and is about to move on screen
 	elseif phase == "did" then
 		-- Called when the scene is now on screen
 		----------------------------------------------------------------------------------------
-		-- --test Menu button
-		-- local function handleMenuButtonEvent( event )
+		--test Menu button
+		local function handleMenuButtonEvent( event )
 		
-		-- 	if ( "ended" == event.phase ) then
-		-- 		print( "Menu testing Button was pressed and released" )
-		-- 		--composer.gotoScene( "view2" )
-		-- 		composer.gotoScene( "view1" )
-		-- 	end
-		-- end
+			if ( "ended" == event.phase ) then
+				print( "Menu testing Button was pressed and released" )
+				--composer.gotoScene( "view2" )
+				timer.pause( petTimer )
+				composer.gotoScene( "view1" )
+			end
+		end
 
-		-- --local startButton = display.newImageRect("start.png", 100, 100)
-		-- local menuButton = widget.newButton(
-		-- 	{
-		-- 		width = 100,
-		-- 		height = 200,
-		-- 		defaultFile = "start.png",
-		-- 		onEvent = handleMenuButtonEvent
-		-- 	}
-		-- )
+		--local startButton = display.newImageRect("start.png", 100, 100)
+		local menuButton = widget.newButton(
+			{
+				width = 100,
+				height = 200,
+				defaultFile = "start.png",
+				onEvent = handleMenuButtonEvent
+			}
+		)
         
-		-- sceneGroup:insert( menuButton) --ADD DROPDOWN MENU
+		sceneGroup:insert( menuButton) --ADD DROPDOWN MENU
 		
 		-- 
 		-- INSERT code here to make the scene come alive

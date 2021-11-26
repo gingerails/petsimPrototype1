@@ -1,6 +1,6 @@
 --local physics = require("physics");
-
-local Pet = {tag="pet", Happiness = 100, Cleanliness = 100, Hunger = 100, xPos=0, yPos=0};
+local physics = require("physics");
+local Pet = {tag="pet", Happiness = 100, Cleanliness = 100, Hunger = 100, xPos=0, yPos=0, physics = {"dynamic", {}}};
 
 function Pet:new (o)    --constructor
   o = o or {}; 
@@ -42,7 +42,7 @@ function Pet:spawn(grp)
   local sheet = graphics.newImageSheet( "PetSpriteSheet.png", opt);--RYU IS HERE
 
  -- Make a sequence table
- local seqData = {
+  seqData = {
   {name = "idle", frames={1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8, 7}, time=1500, loopCount = 0},--Idle phase, 0 loop count for infinite playbacks
   {name = "eating", frames={1, 2}, time = 900, loopCount = 0},-- Eating 
   {name = "petting", frames={3, 4}, time = 900, loopCount = 0},-- Petting
@@ -67,23 +67,95 @@ function Pet:spawn(grp)
   self.shape.y = display.contentCenterY+150
   self.shape.xScale = .45   --Scale the pet down some
   self.shape.yScale = .45
+  self.initShape(grp)
 
-  self.shape:setSequence("idle")--animation sequence set to idle while nothing else happens.
+ -- self.shape:setSequence("idle")--animation sequence set to idle while nothing else happens.
   -- default: will play the first seq listed in seqData
-  self.shape:play();
+  --self.shape:play();
   if grp then grp:insert(self.shape) end    --Adds to display/sceneGroup?
 
 end
 
 
 function Pet:changeSequence(arg)
-  self.shape:setSequence("walking")
+  self.shape:setSequence(arg)
   self.shape:play();
 end
 
 
-function Pet:HealthDrain()
-  pet.HP = pet.HP - 1
+function onPetMoveStart(movingObj) -- This listener func is called when the pet starts transitioning
+	previousSeq = movingObj.sequence -- Store previous sequence, set the new one to be walking during transition
+	movingObj:setSequence("walking")
+	movingObj:play()
+end
+
+function onPetMoveComplete(movingObj) -- This listener func is called when the pet finishes transitioning
+	movingObj:setSequence(previousSeq) -- Restore the sequence from before the transition
+	movingObj:play()
+end
+
+
+-- This function will transition the pet to wherever you want it to go, just pass it the X/Y co-ords
+function movePet(xPos, yPos)
+	transition.to(petSprite, {x = xPos, y = yPos, time = 1000, onStart = onPetMoveStart, onComplete = onPetMoveComplete})
+	transition.to(petCollider, {x = xPos, y = yPos, time = 1000})
+	-- Mirror sprite code
+	if (isPetMirrored == false) and (randXPos < petSprite.x) then -- Mirror the sprite if facing left
+		petSprite:scale( -1, 1 )
+		isPetMirrored = true
+	elseif (isPetMirrored == true) and (randXPos > petSprite.x) then
+		petSprite:scale( -1, 1 )
+		isPetMirrored = false
+	end
+end
+
+-- Pet idle function, if idle is on (pet is doing nothing else) have it randomly walk around
+function petIdle()
+	if isIdle == true then
+		randXPos = math.random(50, display.contentWidth - 100) -- Figure out random x position within the bounds of the floor
+		randYPos = math.random(300, display.contentHeight - 50) -- ditto for y position
+		movePet(randXPos, randYPos) -- Move the pet there
+	end
+end
+
+-- Pet:initShape(grp)
+-- Initializes entity's shape by creating necessary references,
+-- adding it to given group, and setting up physics.
+-- This is done to avoid repeating code in children's spawn methods.
+function Pet:initShape(grp)
+  if not self.shape then return end
+
+  -- Set up references
+  self.shape.pp = self
+  self.shape.tag = self.tag
+
+  -- Add to DisplayGroup
+  if grp then grp:insert(self.shape) end
+
+  -- Set up physics
+  local body, params = unpack(self.physics)
+  physics.addBody(self.shape, body, params)
+
+  -- Set up collision handler
+  self.shape.collision = function (s, event) s.pp:collision(event) end
+  self.shape.preCollision = function (s, event) s.pp:collision(event) end
+  self.shape.postCollision = function (s, event) s.pp:collision(event) end
+  self.shape:addEventListener("collision")
+  self.shape:addEventListener("preCollision")
+  self.shape:addEventListener("postCollision")
+end
+
+
+
+-- Pet:collision(event)
+-- Collision handler for Entities
+-- Acts for preCollision, collision, and postCollision.
+-- Check event.name to ensure proper behavior
+function Pet:collision(event)
+    if event.name == "collision" then
+      print("collision?")
+      
+    end
 end
 
 function Pet:back ()
