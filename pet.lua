@@ -1,12 +1,33 @@
---local physics = require("physics");
 local physics = require("physics");
-local Pet = {tag="pet", Happiness = 100, Cleanliness = 100, Hunger = 100, xPos=0, yPos=0, physics = {"dynamic", {}}};
+local Pet = {tag="pet", Happiness = 100, Cleanliness = 100, Hunger = 100, xPos=0, yPos=0, isIdle = false, isMirrored = false, isSad = false, physics = {"dynamic", {}}};
 
 function Pet:new (o)    --constructor
   o = o or {}; 
   setmetatable(o, self);
   self.__index = self;
   return o;
+end
+
+local function petCollisionHandler(self, event) -- This function fires when the pet collides with a physics body
+  print("detected a collision")
+  if event.other.tag == "toy" then -- CODE THAT EXECUTES WHEN THE PET GETS A TOY
+   transition.to(event.other, {x = 275, y = 100, time = 0})
+    event.other.bodyType = "static" -- THIS LINE WONT SET TOY TO STATIC PHYSICS BODY FOR SOME REASON
+    print (event.other.bodyType)
+    print ("got the toy!")
+    audio.play (event.other.toySound)
+    isIdle = true
+    Pet.Happiness = 100
+
+  elseif event.other.tag == "food" then
+    print ("got the food! Yum!")
+    local foodSound = audio.loadSound( "animal_eat_herb.mp3" )
+    audio.play( foodSound )
+    Pet.Hunger = 100
+    event.other:removeSelf()
+    event.other = nil
+
+  end
 end
 
 function Pet:spawn(grp)
@@ -43,7 +64,7 @@ function Pet:spawn(grp)
 
  -- Make a sequence table
   seqData = {
-  {name = "idle", frames={1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8, 7}, time=1500, loopCount = 0},--Idle phase, 0 loop count for infinite playbacks
+  {name = "idle", frames={1, 1, 1, 1, 1, 1, 1, 1, 1, 8, 8, 8, 8, 8, 1, 1, 1, 1, 7}, time=1500, loopCount = 0},--Idle phase, 0 loop count for infinite playbacks
   {name = "eating", frames={1, 2}, time = 900, loopCount = 0},-- Eating 
   {name = "petting", frames={3, 4}, time = 900, loopCount = 0},-- Petting
   {name = "walking", frames={5, 6}, time = 900, loopCount = 9},-- Walking
@@ -54,67 +75,120 @@ function Pet:spawn(grp)
   {name = "sadWalking", frames={13, 14}, time = 900, loopCount = 9}-- Walking
   }
  
- self.shape=display.newSprite (sheet, seqData);
- self.shape.pp = self;  -- parent object
- self.shape.tag = self.tag; -- “pet”
+ self.sprite = display.newSprite (sheet, seqData);
+ self.sprite.pp = self;  -- parent object
+ self.sprite.tag = self.tag; -- “pet”
 
  ------------Set up animation and placement of sprite
   -- Values for our anim
-  self.shape.anchorX = 0.0--Anchor x
-  self.shape.anchorY = 1.0--Anchor y
+  self.sprite.anchorX = 0.5--Anchor x
+  self.sprite.anchorY = 0.5--Anchor y
   --Both anchors are for the shadows
-  self.shape.x = display.contentCenterX-100     -- Semi-centers the pet
-  self.shape.y = display.contentCenterY+150
-  self.shape.xScale = .45   --Scale the pet down some
-  self.shape.yScale = .45
-  self.initShape(grp)
+  self.sprite.x = display.contentCenterX-100     -- Semi-centers the pet
+  self.sprite.y = display.contentCenterY+150
+  self.sprite.xScale = .25  --Scale the pet down some
+  self.sprite.yScale = .25
+  self.isMirrored = false
+  --self.initShape(grp)
+  -- self.sprite:addEventListener("touch", touch) -- THIS LINE WONT WOKR AAAAAAAA
 
- -- self.shape:setSequence("idle")--animation sequence set to idle while nothing else happens.
-  -- default: will play the first seq listed in seqData
-  --self.shape:play();
-  if grp then grp:insert(self.shape) end    --Adds to display/sceneGroup?
+  -- Create a hitbox/collider for our pet sprite to have some level of physics interaction
+  self.collider = display.newRect(self.sprite.x, self.sprite.y, 90, 90)
+  self.collider.alpha = 0.0
+  petCollisionFilter = { categoryBits=4, maskBits=7 }
+  physics.addBody(self.collider, "kinematic", {filter = petCollisionFilter})
+  self.collider.isSensor = true
+  self.collider.collision = petCollisionHandler -- Define the collision function for the pet's collider hitbox
+  self.collider:addEventListener("collision") -- Ditto
 
+  self.sprite.touch = function (s, event) s.pp:touch(event) end
+  if grp then grp:insert(self.sprite) end
+  self.sprite:addEventListener("touch", touch )
+
+  self.sprite.collision = function (s, event) s.pp:collision(event) end
+  self.sprite.preCollision = function (s, event) s.pp:collision(event) end
+  self.sprite.postCollision = function (s, event) s.pp:collision(event) end
+  self.sprite:addEventListener("collision")
+  self.sprite:addEventListener("preCollision")
+  self.sprite:addEventListener("postCollision")
 end
 
+
+----------- Pet the pet!
+function Pet:touch(event)
+  
+  if event.phase == "began" then
+    previousSeq = self.sprite.sequence -- Store previous sequence, set the new one to be walking during transition
+    if self.isSad == true then
+      local petSound = audio.loadSound( "purr.mp3" )
+      audio.play( petSound )
+      self.sprite:setSequence("sadPetting")
+      Pet.Cleanliness = 100
+
+      self.sprite:play()
+    else
+      local petSound = audio.loadSound( "purr.mp3" )
+      audio.play( petSound)
+      self.sprite:setSequence("petting")
+      Pet.Cleanliness = 100
+      self.sprite:play()
+    end
+  elseif event.phase == "ended" then
+    self.sprite:setSequence(previousSeq) -- Restore the sequence from before the transition
+    self.sprite:play()
+  end
+  
+end
 
 function Pet:changeSequence(arg)
-  self.shape:setSequence(arg)
-  self.shape:play();
+  self.sprite:setSequence(arg)
+  self.sprite:play();
 end
 
-
-function onPetMoveStart(movingObj) -- This listener func is called when the pet starts transitioning
-	previousSeq = movingObj.sequence -- Store previous sequence, set the new one to be walking during transition
-	movingObj:setSequence("walking")
-	movingObj:play()
-end
-
-function onPetMoveComplete(movingObj) -- This listener func is called when the pet finishes transitioning
-	movingObj:setSequence(previousSeq) -- Restore the sequence from before the transition
-	movingObj:play()
-end
 
 
 -- This function will transition the pet to wherever you want it to go, just pass it the X/Y co-ords
-function movePet(xPos, yPos)
-	transition.to(petSprite, {x = xPos, y = yPos, time = 1000, onStart = onPetMoveStart, onComplete = onPetMoveComplete})
-	transition.to(petCollider, {x = xPos, y = yPos, time = 1000})
+function Pet:movePet(xPos, yPos)
+  function onPetMoveStart(movingObj) -- This listener func is called when the pet starts transitioning
+    previousSeq = movingObj.sequence -- Store previous sequence, set the new one to be walking during transition
+    if self.isSad == true then
+      movingObj:setSequence("sadWalking")
+      --print("whyousosadddd")
+      movingObj:play()
+    else
+      movingObj:setSequence("walking")
+      movingObj:play()
+    end
+  end
+  
+  function onPetMoveComplete(movingObj) -- This listener func is called when the pet finishes transitioning
+    movingObj:setSequence(previousSeq) -- Restore the sequence from before the transition
+    if movingObj.sequence == "petting" then
+      movingObj:setSequence("idle")
+    end
+    movingObj:play()
+  end
+
+	petTrans = transition.to(self.sprite, {x = xPos, y = yPos, time = 1000, onStart = onPetMoveStart, onComplete = onPetMoveComplete}) -- Transition pet to co-ords
+  transition.to(self.collider, {x = xPos, y = yPos, time = 1000})
 	-- Mirror sprite code
-	if (isPetMirrored == false) and (randXPos < petSprite.x) then -- Mirror the sprite if facing left
-		petSprite:scale( -1, 1 )
-		isPetMirrored = true
-	elseif (isPetMirrored == true) and (randXPos > petSprite.x) then
-		petSprite:scale( -1, 1 )
-		isPetMirrored = false
+  if (self.isMirrored == false) and (xPos < self.sprite.x) then -- Mirror the sprite if facing left
+		self.sprite:scale( -1, 1 )
+		self.isMirrored = true
+	elseif (self.isMirrored == true) and (xPos > self.sprite.x) then -- ditto for changing direction
+		self.sprite:scale( -1, 1 )
+		self.isMirrored = false
 	end
 end
 
+-- CURRENTLY UNUSED FUNCTION
 -- Pet idle function, if idle is on (pet is doing nothing else) have it randomly walk around
-function petIdle()
+function Pet:petIdle()
+  print("pet is idling")
 	if isIdle == true then
 		randXPos = math.random(50, display.contentWidth - 100) -- Figure out random x position within the bounds of the floor
 		randYPos = math.random(300, display.contentHeight - 50) -- ditto for y position
-		movePet(randXPos, randYPos) -- Move the pet there
+		Pet:movePet(randXPos, randYPos) -- Move the pet there
 	end
 end
 
@@ -122,30 +196,32 @@ end
 -- Initializes entity's shape by creating necessary references,
 -- adding it to given group, and setting up physics.
 -- This is done to avoid repeating code in children's spawn methods.
-function Pet:initShape(grp)
-  if not self.shape then return end
+-- function Pet:initShape(grp)
+--   print("GOOOOOOOOOOOOOOOOOOOOTTHISFAR")
+--   --if not self.sprite then return end
+--  -- print("GOOOOOOOOOOOOOOOOOOOOTTHISFAR")
+--   -- Set up references
+--   self.sprite.pp = self
+--   self.sprite.tag = self.tag
 
-  -- Set up references
-  self.shape.pp = self
-  self.shape.tag = self.tag
+--   -- Add to DisplayGroup
+--   if grp then grp:insert(self.sprite) end
 
-  -- Add to DisplayGroup
-  if grp then grp:insert(self.shape) end
+--   -- Set up physics
+--   local body, params = unpack(self.physics)
+  
+--   self.shape.collision = petCollisionHandler
+--   print("GOOOOOOOOOOOOOOOOOOOOTTHISFAR")
 
-  -- Set up physics
-  local body, params = unpack(self.physics)
-  physics.addBody(self.shape, body, params)
-
-  -- Set up collision handler
-  self.shape.collision = function (s, event) s.pp:collision(event) end
-  self.shape.preCollision = function (s, event) s.pp:collision(event) end
-  self.shape.postCollision = function (s, event) s.pp:collision(event) end
-  self.shape:addEventListener("collision")
-  self.shape:addEventListener("preCollision")
-  self.shape:addEventListener("postCollision")
-end
-
-
+--   -- Set up collision handler
+--   --self.sprite.collision = function (s, event) s.pp:collision(event) end
+--   --self.sprite.preCollision = function (s, event) s.pp:collision(event) end
+--   --self.sprite.postCollision = function (s, event) s.pp:collision(event) end
+--   --self.sprite:addEventListener("collision")
+--   --self.sprite:addEventListener("preCollision")
+--   --self.sprite:addEventListener("postCollision")
+  
+-- end
 
 -- Pet:collision(event)
 -- Collision handler for Entities
@@ -154,24 +230,23 @@ end
 function Pet:collision(event)
     if event.name == "collision" then
       print("collision?")
-      
     end
 end
 
 function Pet:back ()
-  transition.to(self.shape, {x=self.shape.x, y=150,  
+  transition.to(self.sprite, {x=self.sprite.x, y=150,  
   time=self.fB, rotation=self.bR, 
   onComplete=function (obj) self:forward() end} );
 end
 
-function Pet:side ()   
-   transition.to(self.shape, {x=self.shape.x, 
+function Pet:side ()
+   transition.to(self.sprite, {x=self.sprite.x, 
    time=self.fS, rotation=self.sR, 
    onComplete=function (obj) self:back() end } );
 end
 
 function Pet:forward ()   
-   transition.to(self.shape, {x=self.shape.x, y=800, 
+   transition.to(self.sprite, {x=self.sprite.x, y=800, 
    time=self.fT, rotation=self.fR, 
    onComplete= function (obj) self:side() end } );
 end

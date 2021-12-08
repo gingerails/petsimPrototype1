@@ -1,7 +1,8 @@
-local Item = require ( "item" )
 local physics = require("physics");
+local Item = require ( "item" )
 
-local Spaghetti = Item:new({tag="shape", xPos=0, yPos=0, physics = {"dynamic", {}}});
+local Spaghetti = Item:new({tag="food", xPos=0, yPos=0, physics = {"dynamic", {}}});
+
 -----------------------------------------------------------------------------
 -- spawn()
 -- Spaghetti:spawn ()
@@ -10,37 +11,26 @@ local Spaghetti = Item:new({tag="shape", xPos=0, yPos=0, physics = {"dynamic", {
 -----------------------------------------------------------------------------
 
 function Spaghetti:spawn(grp)
-    self.shape=display.newImage("spaghet.png", self.x, self.y);
+    self.shape=display.newImage("spaghet lowres.png", self.x, self.y);
+    self.outline = graphics.newOutline( 10, "spaghet lowres.png")
     self.shape.pp = self;  -- parent object
     self.shape.tag = self.tag; -- “shape”
-    self.shape.xScale = .05   --Scale the pet down some
-    self.shape.yScale = .05
-    self.shape.x = 100
-    self.shape.y = 400
+    self.tag = "food"
+    self.shape.x = 180  
+    self.shape.y = 100
     --self.shape:addEventListener
     print("made spaghetti")
     self.shape.touch = function (s, event) s.pp:touch(event) end
     self.shape:addEventListener("touch", touch )
-
+    self:initShape()
     self:sound();
-    self:initShape();
     if grp then grp:insert(self.shape) end    --Adds to display/sceneGroup?
 end
 
 -----------------------------------------------------------------------------
 -- touch()
--- Shape:touch()will allow the user to remove the shape if it is touched and play sound.
+-- Spaghetti touch allows the user to drag the shape around
 -----------------------------------------------------------------------------
--- function Spaghetti:touch(event)
---     if ( event.phase == "began" ) then
---         print( "Touch event began on: " .. self.tag )
---         self:sound();
---         self.shape.x = 200
---         self.shape.y = 300
---     end
-    
--- end
-
 function Spaghetti:touch( event )
     if event.phase == "began" then
     
@@ -60,11 +50,19 @@ function Spaghetti:touch( event )
         display.getCurrentStage():setFocus(nil)
     
     end
-    
     return true
-    
 end
 
+
+-- Pet:collision(event)
+-- Collision handler for Entities
+-- Acts for preCollision, collision, and postCollision.
+-- Check event.name to ensure proper behavior
+function Spaghetti:collision(event)
+    if event.name == "collision" then
+      print("Spaghetticollision?")
+    end
+end
 
 function Spaghetti:initShape(grp)
     if not self.shape then return end
@@ -77,8 +75,9 @@ function Spaghetti:initShape(grp)
     if grp then grp:insert(self.shape) end
   
     -- Set up physics
-    local body, params = unpack(self.physics)
-    physics.addBody(self.shape, body, params)
+    -- local body, params = unpack(self.physics)
+    itemCollisionFilter = { categoryBits=2, maskBits=4 }
+    physics.addBody(self.shape, "dynamic",{ outline=self.outline, density=1.0, friction=0.3, bounce=0.3, filter = itemCollisionFilter})
   
     -- Set up collision handler
     self.shape.collision = function (s, event) s.pp:collision(event) end
@@ -87,15 +86,8 @@ function Spaghetti:initShape(grp)
     self.shape:addEventListener("collision")
     self.shape:addEventListener("preCollision")
     self.shape:addEventListener("postCollision")
-  end
-
-
-function Spaghetti:collision(event)
-    if event.name == "postCollision" then
-      print("Spaghettercollision?")
-      
-    end
 end
+  
 -----------------------------------------------------------------------------
 -- sound()
 -- Spaghetti:sound() will play rectSound.wav you can download it from dropbox folder

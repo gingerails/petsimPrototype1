@@ -1,6 +1,6 @@
 local physics = require("physics");
 
-local Item = {tag="shape", xPos=0, yPos=0, physics = {"dynamic", {}}};
+local Item = {tag="food", xPos=0, yPos=0, physics = {"dynamic", {}}};
 
 function Item:new (o)    --constructor
   o = o or {}; 
@@ -16,13 +16,13 @@ end
 -----------------------------------------------------------------------------
 
 function Item:spawn(grp)
-    self.shape=display.newImage("burger.png", self.x, self.y);
+    self.shape=display.newImage("burger lowres.png", self.x, self.y);
+    self.outline = graphics.newOutline(10, "burger lowres.png")
     self.shape.pp = self;  -- parent object
     self.shape.tag = self.tag; -- “shape”
-    self.shape.xScale = .05   --Scale the pet down some
-    self.shape.yScale = .05
-    self.shape.x = 100
-    self.shape.y = 400
+    self.shape.x = 180
+    self.shape.y = 100
+    self.tag = "food"
     --self.shape:addEventListener
     print("made item")
     self.shape.touch = function (s, event) s.pp:touch(event) end
@@ -34,18 +34,8 @@ end
 
 -----------------------------------------------------------------------------
 -- touch()
--- Shape:touch()will allow the user to remove the shape if it is touched and play sound.
+-- Item touch allows the user to drag the shape around
 -----------------------------------------------------------------------------
--- function Item:touch(event)
---     if ( event.phase == "began" ) then
---         print( "Touch event began on: " .. self.tag )
---         self:sound();
---         self.shape.x = 200
---         self.shape.y = 300
---     end
-    
--- end
-
 function Item:touch( event )
     if event.phase == "began" then
     
@@ -76,10 +66,8 @@ end
 -- Acts for preCollision, collision, and postCollision.
 -- Check event.name to ensure proper behavior
 function Item:collision(event)
-    if event.name == "collision" then
-      print("Itemcollision?")
-      
-    end
+  print("COLLIDED")
+  --if this worked correctly >:(
 end
 
 function Item:initShape(grp)
@@ -93,8 +81,9 @@ function Item:initShape(grp)
     if grp then grp:insert(self.shape) end
   
     -- Set up physics
-    local body, params = unpack(self.physics)
-    physics.addBody(self.shape, body, params)
+    -- local body, params = unpack(self.physics)
+    itemCollisionFilter = { categoryBits=2, maskBits=4 }
+    physics.addBody(self.shape, "dynamic",{ outline=self.outline, density=1.0, friction=0.3, bounce=0.3, filter = itemCollisionFilter, isSensor = true})
   
     -- Set up collision handler
     self.shape.collision = function (s, event) s.pp:collision(event) end

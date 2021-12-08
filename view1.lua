@@ -21,7 +21,7 @@ function scene:create( event )
 	background.x = display.contentCenterX
 	background.y = display.contentCenterY
 	background.xScale = 1.5;
-	background.yScale = 1;
+	background.yScale = 1.3;
 
 	
 	-----------------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ function scene:create( event )
 	startButton.xScale = .5
 	startButton.yScale = .5
 	startButton.x = display.contentCenterX
-	startButton.y = display.contentCenterY+10
+	startButton.y = display.contentCenterY+50
 	
 	-----------------------------------------------------------------------------------------
 	-- -- create title
